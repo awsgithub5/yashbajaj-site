@@ -101,6 +101,36 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
 }
 .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;z-index:20}
 @media (max-width:720px){section.need{grid-template-columns:1fr}.need form{grid-template-columns:1fr}.count{margin-left:0;width:100%}}
+/* search assistant */
+.cb-fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:12px 18px;background:var(--accent);color:var(--accent-ink);font:600 15px var(--f-body);box-shadow:0 6px 20px color-mix(in srgb,var(--ink) 25%,transparent);cursor:pointer}
+.cb-fab svg{width:20px;height:20px}
+.cb{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:31;width:min(400px,calc(100vw - 32px));height:min(600px,calc(100vh - 32px));background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px color-mix(in srgb,var(--ink) 25%,transparent)}
+.cb-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.cb-head b{font-family:var(--f-display);font-stretch:88%;font-size:17px;display:block}
+.cb-head small{color:var(--muted);font-size:12px}
+.cb-x{border:1px solid var(--line);background:var(--paper);border-radius:8px;width:34px;height:34px;font-size:18px;line-height:1;cursor:pointer;color:var(--ink)}
+.cb-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.cb-m{max-width:90%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.cb-m.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.cb-m.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px}
+.cb-crit{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.cb-crit span{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted);background:var(--paper)}
+.cb-res{align-self:stretch;display:flex;flex-direction:column;gap:8px}
+.cb-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper);display:flex;flex-direction:column;gap:4px}
+.cb-card .t{font-weight:600;font-size:14px}
+.cb-card .l{font-size:13px;color:var(--muted)}
+.cb-card .f{display:flex;flex-wrap:wrap;gap:4px 12px;font-family:var(--f-mono);font-size:13px}
+.cb-card .a{font-size:12px;color:var(--marigold);font-weight:600}
+.cb-card .btn{align-self:flex-start;padding:5px 12px;font-size:13px;margin-top:2px}
+.cb-more{align-self:flex-start;border:1px solid var(--line);background:var(--paper);color:var(--accent);border-radius:8px;padding:6px 12px;font:600 13px var(--f-body);cursor:pointer}
+.cb-sugg{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
+.cb-sugg button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 10px;font:13px var(--f-body);cursor:pointer}
+.cb-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.cb-form input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font:15px var(--f-body)}
+.cb-form button{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:0 16px;font:600 14px var(--f-body);cursor:pointer}
+.chatbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;margin-top:12px;border:1px solid var(--accent);border-radius:10px;background:var(--paper);font-size:14px}
+.chatbar button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 10px;font:13px var(--f-body);cursor:pointer}
+@media (max-width:520px){.cb{right:0;left:0;bottom:0;width:100%;height:min(88vh,640px);border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}.cb-fab span{display:inline}}
 </style>
 <style>html{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
@@ -147,6 +177,7 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
     <span class="count" id="count"></span>
   </div>
 
+  <div class="chatbar" id="chatbar" hidden></div>
   <main class="grid" id="grid"></main>
 
   <section class="need" id="need">
@@ -170,6 +201,18 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
     <span>Bank auction details are from banks' public sale notices. Final price is decided at the auction.</span>
   </footer>
 </div>
+<button class="cb-fab" id="cbOpen" type="button" aria-label="Open property search assistant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span>Find a property</span></button>
+<section class="cb" id="cb" role="dialog" aria-label="Property search assistant" hidden>
+  <div class="cb-head"><div><b>Property finder</b><small>Type what you need, like "2 BHK under 50 lakh in Vijay Nagar"</small></div><button class="cb-x" id="cbClose" type="button" aria-label="Close">×</button></div>
+  <div class="cb-log" id="cbLog" aria-live="polite"></div>
+  <div class="cb-sugg" id="cbSugg">
+    <button type="button">Plots under 50 lakh</button>
+    <button type="button">Flat under 30 lakh</button>
+    <button type="button">Bank auction house</button>
+    <button type="button">Office or shop</button>
+  </div>
+  <form class="cb-form" id="cbForm"><input id="cbIn" autocomplete="off" placeholder="e.g. plot 1000 sq ft Bangarda under 40 L" aria-label="What are you looking for?"><button type="submit">Search</button></form>
+</section>
 <div class="toast" id="toast" hidden></div>
 
 <script id="listing-data" type="application/json">
@@ -264,9 +307,11 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
       if (["plot","home","commercial"].includes(filter) && group(l)!==filter) return false;
       if (max && (!l.price || l.price>max)) return false;
       if (q && !(l.location+" "+l.title).toLowerCase().includes(q)) return false;
+      if (chatIds && !chatIds.has(l.id)) return false;
       return true;
     }).sort((a,b) => (b.listed||"").localeCompare(a.listed||"") || (a.kind===b.kind ? 0 : a.kind==="own" ? -1 : 1) || (a.auctionDate||"").localeCompare(b.auctionDate||""));
     document.getElementById("count").textContent = rows.length + " of " + live.length + " properties";
+    const cbar = document.getElementById("chatbar"); cbar.hidden = !chatIds; if (chatIds) { cbar.innerHTML = "Showing finder results: <b>" + esc(chatLabel) + "</b> "; const x = document.createElement("button"); x.type = "button"; x.textContent = "Show all properties"; x.onclick = () => { chatIds = null; render(); }; cbar.append(x); }
     const g = document.getElementById("grid");
     if (!rows.length){ g.innerHTML = '<p class="empty">No property matches these filters right now. Send your requirement below and we\'ll find one.</p>'; return; }
     g.innerHTML = rows.map(l => {
@@ -316,6 +361,148 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
   form.addEventListener("input", syncNeed); form.addEventListener("change", syncNeed);
   form.addEventListener("submit", e => e.preventDefault());
   syncNeed();
+  /* ---------- property finder (rule-based, runs in the browser) ---------- */
+  let chatIds = null, chatLabel = "";
+  const cbLog = document.getElementById("cbLog");
+  const TYPE_WORDS = [
+    ["plot", /\b(plots?|zameen|jameen|bhukhand)\b/],
+    ["land", /\b(land|agri\w*|farm ?house|farmland|bigha|acre)\b/],
+    ["flat", /\b(flats?|apartments?|\d\s*bhk|bhk|multi)\b/],
+    ["house", /\b(house|houses|bungalows?|villa|villas|makan|makaan|kothi|duplex|row ?house|home|independent)\b/],
+    ["shop", /\b(shops?|dukan|dukaan|showrooms?|retail)\b/],
+    ["office", /\b(offices?|it space|workspace)\b/],
+    ["industrial", /\b(industrial|godown|warehouse|shed|factory)\b/],
+    ["commercial", /\b(commercial|vyavsayik)\b/]
+  ];
+  const STOP = new Set("i me my we need want wanted looking look for find show a an the in at near on of to and or with under below upto up till max maximum within less than above over more min minimum from between budget price rs inr lakh lakhs lac lacs l cr crore crores k sq ft sqft feet square yard yards gaj bigha acre area size sale buy purchase rent rental lease kiraye kiraya chahiye chaiye hai mein me ka ki ke se tak koi kuch please pls property properties plot plots flat flats house home bhk any good cheap best new indore road nagar colony available option options auction bank".split(" "));
+  function amount(numStr, unit){
+    let n = parseFloat(numStr.replace(/,/g, "")); if (!isFinite(n)) return null;
+    unit = (unit || "").toLowerCase();
+    if (/^(cr|crore|crores|c)$/.test(unit)) return n * 1e7;
+    if (/^(l|lac|lacs|lakh|lakhs|lk)$/.test(unit)) return n * 1e5;
+    if (/^(k|thousand)$/.test(unit)) return n * 1e3;
+    if (n >= 10000) return n;           // plain rupees
+    return null;
+  }
+  function parseQuery(raw){
+    const s = " " + raw.toLowerCase().replace(/₹/g, " ").replace(/\s+/g, " ") + " ";
+    const c = { words: [] };
+    if (/\b(rent|rental|lease|kiraye|kiraya|on rent)\b/.test(s)) c.deal = "rent";
+    if (/\b(auction|bank|nilami|bank sale)\b/.test(s)) c.auction = true;
+    for (const [t, re] of TYPE_WORDS) if (re.test(s)) { c.types = c.types || []; c.types.push(t); }
+    const bhk = s.match(/(\d(?:\.5)?)\s*bhk/); if (bhk) c.bhk = parseFloat(bhk[1]);
+    // area
+    const ar = s.match(/(\d[\d,.]*)\s*(sq\.?\s*ft|sqft|sq feet|square feet|sft|ft2|ft²|sq\.?\s*yd|sq yards?|gaj|bigha|acres?)\b/);
+    if (ar){ let n = parseFloat(ar[1].replace(/,/g,"")); const u = ar[2];
+      if (/yd|yard|gaj/.test(u)) n *= 9; else if (/bigha/.test(u)) n *= 27000; else if (/acre/.test(u)) n *= 43560;
+      c.area = n; }
+    // money: ranges first
+    const unitRe = "(cr|crore|crores|c|l|lac|lacs|lakh|lakhs|lk|k|thousand)?";
+    const rng = s.match(new RegExp("(\\d[\\d,.]*)\\s*" + unitRe + "\\s*(?:-|to|se|and)\\s*(\\d[\\d,.]*)\\s*" + unitRe + "\\b"));
+    const noAreaS = ar ? s.replace(ar[0], " ") : s;
+    if (rng && !(ar && s.indexOf(rng[0]) >= 0 && rng[0].includes(ar[1]))){
+      const u2 = rng[4] || rng[2]; const a = amount(rng[1], rng[2] || u2), b = amount(rng[3], u2);
+      if (a && b){ c.min = Math.min(a,b); c.max = Math.max(a,b); }
+    }
+    if (c.max == null){
+      const re = new RegExp("(under|below|upto|up to|within|max|maximum|less than|tak|budget|around|about|above|over|more than|min|minimum|from|starting)?\\s*(\\d[\\d,.]*)\\s*" + unitRe + "\\b", "g");
+      let m;
+      while ((m = re.exec(noAreaS))){
+        if (/bhk/.test(noAreaS.slice(m.index + m[0].length, m.index + m[0].length + 4))) continue;
+        const v = amount(m[2], m[3]); if (!v) continue;
+        const q = (m[1] || "").trim();
+        if (/above|over|more than|min|minimum|from|starting/.test(q)) c.min = v;
+        else if (/around|about/.test(q)) { c.min = v * 0.8; c.max = v * 1.2; }
+        else c.max = v;
+      }
+    }
+    // free words (possible locality)
+    c.words = raw.toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g, " ").split(/\s+/).filter(w => w.length > 2 && !STOP.has(w) && !/^\d/.test(w) && !TYPE_WORDS.some(([,re]) => re.test(" " + w + " ")));
+    return c;
+  }
+  const typeOk = (l, types) => {
+    if (!types || !types.length) return true;
+    const g = l.type;
+    return types.some(t => t === g || (t === "plot" && g === "land") || (t === "land" && g === "plot") ||
+      (t === "house" && ["house","villa","row house"].includes(g)) ||
+      (t === "commercial" && ["shop","office","industrial","commercial"].includes(g)) ||
+      (t === "shop" && g === "commercial") || (t === "office" && g === "commercial"));
+  };
+  function search(c){
+    const hay = l => (l.title + " " + l.location).toLowerCase();
+    let pool = live.filter(l => typeOk(l, c.types));
+    if (c.auction) pool = pool.filter(l => l.kind === "auction");
+    if (c.deal === "rent") pool = pool.filter(l => /rent|lease/i.test(l.title));
+    else pool = pool.filter(l => !/\b(on rent|for rent|lease)\b/i.test(l.title));
+    if (c.bhk) pool = pool.filter(l => !/bhk/i.test(l.title) || new RegExp(c.bhk + "\\s*bhk", "i").test(l.title));
+    if (c.max) pool = pool.filter(l => !l.price || l.price <= c.max * 1.1);
+    if (c.min) pool = pool.filter(l => !l.price || l.price >= c.min * 0.9);
+    if (c.area) pool = pool.filter(l => !l.areaSqft || (l.areaSqft >= c.area * 0.75 && l.areaSqft <= c.area * 1.35));
+    // prefer listings that actually state the figure being asked about
+    if (c.area && pool.some(l => l.areaSqft)) pool = pool.filter(l => l.areaSqft);
+    if ((c.max || c.min) && pool.some(l => l.price)) pool = pool.filter(l => l.price);
+    let locHit = true;
+    if (c.words.length){
+      const byLoc = pool.filter(l => c.words.some(w => hay(l).includes(w)));
+      if (byLoc.length) pool = byLoc; else locHit = false;
+    }
+    const score = l => (l.price ? 2 : 0) + (l.areaSqft ? 1 : 0) + (c.max && l.price ? 1 - l.price / (c.max * 1.1) : 0) + (l.kind === "own" ? 0.5 : 0);
+    pool.sort((a, b) => score(b) - score(a));
+    return { rows: pool, locHit };
+  }
+  function critChips(c){
+    const out = [];
+    if (c.auction) out.push("bank auction");
+    if (c.deal === "rent") out.push("on rent");
+    if (c.bhk) out.push(c.bhk + " BHK");
+    if (c.types) out.push(c.types.join(" / "));
+    if (c.min && c.max) out.push(money(c.min) + " – " + money(c.max));
+    else if (c.max) out.push("up to " + money(c.max));
+    else if (c.min) out.push("from " + money(c.min));
+    if (c.area) out.push("~" + Math.round(c.area).toLocaleString("en-IN") + " sq ft");
+    if (c.words.length) out.push(c.words.join(", "));
+    return out;
+  }
+  function cbAdd(cls, html){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; cbLog.append(d); cbLog.scrollTop = cbLog.scrollHeight; return d; }
+  function cardHtml(l){
+    return '<div class="cb-card"><span class="t">' + esc(l.title) + '</span><span class="l">' + esc(l.location) + '</span>'
+      + '<span class="f"><span>' + (l.kind==="auction" ? "Reserve " : "") + money(l.price) + '</span>' + (l.areaSqft ? '<span>' + l.areaSqft.toLocaleString("en-IN") + ' ft²</span>' : '') + '</span>'
+      + (l.kind==="auction" ? '<span class="a">Bank auction · ' + fmtDate(l.auctionDate) + ' · ' + esc(l.lender) + '</span>' : '')
+      + '<a class="btn wa" href="' + esc(waLink(enquiry(l))) + '" target="_blank" rel="noopener">Enquire on WhatsApp</a></div>';
+  }
+  function reqLink(q){ return waLink("Hi Yash, I'm looking for: " + q + ". Please share suitable options. Ref: REQ-CHAT"); }
+  function answer(q){
+    const c = parseQuery(q);
+    const understood = critChips(c);
+    if (!understood.length){
+      cbAdd("cb-m bot", "Tell me what you're looking for: type (plot, flat, house, shop, office, land), budget, size or area. For example <b>\"plot under 40 lakh\"</b> or <b>\"bank auction flat Indore\"</b>.");
+      return;
+    }
+    const { rows, locHit } = search(c);
+    const chips = '<div class="cb-crit">' + understood.map(t => "<span>" + esc(t) + "</span>").join("") + "</div>";
+    if (!rows.length){
+      cbAdd("cb-m bot", "Nothing listed right now that matches." + chips + '<div style="margin-top:8px">New properties come in every day. Send me your requirement and I\'ll WhatsApp you as soon as one fits.</div><a class="btn wa" style="margin-top:8px;display:inline-flex" href="' + esc(reqLink(q)) + '" target="_blank" rel="noopener">Send requirement to Yash</a>');
+      return;
+    }
+    const note = !locHit ? '<div style="margin-top:6px">No listing in <b>' + esc(c.words.join(", ")) + '</b> right now, so here are the closest matches elsewhere.</div>' : "";
+    cbAdd("cb-m bot", "Found <b>" + rows.length + "</b> propert" + (rows.length === 1 ? "y" : "ies") + "." + chips + note);
+    const box = cbAdd("cb-res", rows.slice(0, 5).map(cardHtml).join(""));
+    if (rows.length > 5){
+      const b = document.createElement("button"); b.type = "button"; b.className = "cb-more"; b.textContent = "Show all " + rows.length + " on the page";
+      b.onclick = () => { chatIds = new Set(rows.map(r => r.id)); chatLabel = understood.join(" · "); render(); closeCb(); document.getElementById("grid").scrollIntoView({ behavior: "smooth", block: "start" }); };
+      box.append(b);
+    }
+    cbAdd("cb-m bot", 'Not quite right? Add a locality, budget or size, or <a href="' + esc(reqLink(q)) + '" target="_blank" rel="noopener">send this requirement to Yash</a>.');
+  }
+  const cb = document.getElementById("cb"), fab = document.getElementById("cbOpen");
+  function openCb(){ cb.hidden = false; fab.hidden = true; if (!cbLog.children.length) cbAdd("cb-m bot", "Namaste! I can search Yash Real Estate's live properties for you. What are you looking for? You can write in English or Hinglish, like <b>\"3 BHK flat 80 lakh tak\"</b>."); setTimeout(() => document.getElementById("cbIn").focus(), 50); }
+  function closeCb(){ cb.hidden = true; fab.hidden = false; fab.focus(); }
+  fab.addEventListener("click", openCb);
+  document.getElementById("cbClose").addEventListener("click", closeCb);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !cb.hidden) closeCb(); });
+  document.getElementById("cbForm").addEventListener("submit", e => { e.preventDefault(); const i = document.getElementById("cbIn"); const q = i.value.trim(); if (!q) return; i.value = ""; cbAdd("cb-m me", esc(q)); answer(q); });
+  document.getElementById("cbSugg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; cbAdd("cb-m me", esc(b.textContent)); answer(b.textContent); });
+
   render();
 })();
 </script>
