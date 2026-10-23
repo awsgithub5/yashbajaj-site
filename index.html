@@ -426,7 +426,7 @@ function normHindi(s){
     ["industrial", /\b(industrial|godown|warehouse|shed|factory)\b/],
     ["commercial", /\b(commercial|vyavsayik)\b/]
   ];
-  const STOP = new Set("i me my we need want wanted looking look for find show a an the in at near on of to and or with under below upto up till max maximum within less than above over more min minimum from between budget price rs inr lakh lakhs lac lacs l cr crore crores k sq ft sqft feet square yard yards gaj bigha acre area size sale buy purchase rent rental lease kiraye kiraya chahiye chaiye hai mein me ka ki ke se tak koi kuch please pls property properties plot plots flat flats house home bhk any good cheap best new indore road nagar colony available option options auction bank".split(" "));
+  const STOP = new Set("i me my we need want wanted looking look for find show a an the in at near on of to and or with under below upto up till max maximum within less than above over more min minimum from between budget price rs inr lakh lakhs lac lacs l cr crore crores k sq ft sqft feet square yard yards gaj bigha acre area size sale buy purchase rent rental lease kiraye kiraya chahiye chaiye hai mein me ka ki ke se tak koi kuch please pls property properties plot plots flat flats house home bhk any good cheap best new indore road nagar colony available option options auction bank space spaces jagah near side wala wali vala show me give list all type types sell selling ready resale fresh".split(" "));
   function amount(numStr, unit){
     let n = parseFloat(numStr.replace(/,/g, "")); if (!isFinite(n)) return null;
     unit = (unit || "").toLowerCase();
@@ -441,6 +441,7 @@ function normHindi(s){
     const c = { words: [] };
     if (/\b(rent|rental|lease|kiraye|kiraya|on rent)\b/.test(s)) c.deal = "rent";
     if (/\b(auction|bank|nilami|bank sale)\b/.test(s)) c.auction = true;
+    if (/\b(agri\w*|farm ?house|farmland|khet|kheti)\b/.test(s)) c.agri = true;
     for (const [t, re] of TYPE_WORDS) if (re.test(s)) { c.types = c.types || []; c.types.push(t); }
     const bhk = s.match(/(\d(?:\.5)?)\s*bhk/); if (bhk) c.bhk = parseFloat(bhk[1]);
     // area
@@ -470,6 +471,7 @@ function normHindi(s){
     }
     // free words (possible locality)
     c.words = raw.toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g, " ").split(/\s+/).filter(w => w.length > 2 && !STOP.has(w) && !/^\d/.test(w) && !TYPE_WORDS.some(([,re]) => re.test(" " + w + " ")));
+    c.place = c.words.map(w => { const m = raw.toLowerCase().match(new RegExp(w + "\\s+(nagar|road|colony|chouraha|square|naka|bypass)\\b")); return m ? w + " " + m[1] : w; }).join(", ");
     return c;
   }
   const typeOk = (l, types) => {
@@ -487,7 +489,16 @@ function normHindi(s){
     if (c.auction) pool = pool.filter(l => l.kind === "auction");
     if (c.deal === "rent") pool = pool.filter(l => isRent(l) || /rent|lease/i.test(l.title));
     else pool = pool.filter(l => !isRent(l) && !/\b(on rent|for rent|lease)\b/i.test(l.title));
-    if (c.bhk) pool = pool.filter(l => !/bhk/i.test(l.title) || new RegExp(c.bhk + "\\s*bhk", "i").test(l.title));
+    if (c.bhk){
+      const exact = pool.filter(l => new RegExp("(^|[^0-9.])" + c.bhk + "\\s*bhk", "i").test(l.title));
+      pool = exact.length ? exact : pool.filter(l => !/bhk/i.test(l.title));
+    }
+    if (c.types && c.types.includes("commercial") && c.types.length > 1){
+      const base = c.types.filter(t => t !== "commercial");
+      const com = pool.filter(l => typeOk(l, base) && /commercial|shop|showroom|office/i.test(l.title + " " + l.type));
+      if (com.length) pool = com;
+    }
+    if (c.agri){ const ag = pool.filter(l => l.type === "land" || /agri|farm|acre|bigha|khet/i.test(l.title)); if (ag.length) pool = ag; }
     if (c.max) pool = pool.filter(l => !l.price || l.price <= c.max * 1.1);
     if (c.min) pool = pool.filter(l => !l.price || l.price >= c.min * 0.9);
     if (c.area) pool = pool.filter(l => !l.areaSqft || (l.areaSqft >= c.area * 0.75 && l.areaSqft <= c.area * 1.35));
@@ -499,7 +510,9 @@ function normHindi(s){
       const byLoc = pool.filter(l => c.words.some(w => hay(l).includes(fz(w))));
       if (byLoc.length) pool = byLoc; else locHit = false;
     }
-    const score = l => (l.price ? 2 : 0) + (l.areaSqft ? 1 : 0) + (c.max && l.price ? 1 - l.price / (c.max * 1.1) : 0) + (l.kind === "own" ? 0.5 : 0);
+    const target = c.max ? (c.min ? (c.min + c.max) / 2 : c.max * 0.85) : null;
+    const score = l => (l.price ? 2 : 0) + (l.areaSqft ? 1 : 0) + (target && l.price ? 2 * Math.max(0, 1 - Math.abs(l.price - target) / target) : 0)
+      + (c.area && l.areaSqft ? Math.max(0, 1 - Math.abs(l.areaSqft - c.area) / c.area) : 0) + (l.kind === "own" ? 0.5 : 0) + (l.kind === "network" ? 0.2 : 0);
     pool.sort((a, b) => score(b) - score(a));
     return { rows: pool, locHit };
   }
@@ -525,20 +538,40 @@ function normHindi(s){
   }
   function reqLink(q){ return waLink("Hi Yash, I'm looking for: " + q + ". Please share suitable options. Ref: REQ-CHAT"); }
   function answer(q){
+    const refs = [...new Set((q.toUpperCase().match(/YB[-\s]?[2-9A-HJ-NP-Z]{5}/g) || []).map(r => "YB-" + r.replace(/^YB[-\s]?/, "")))];
+    if (refs.length){
+      for (const code of refs){
+        const l = live.find(x => refCode(x.id) === code);
+        if (l){ cbAdd("cb-m bot", "Here is <b>" + code + "</b>:"); cbAdd("cb-res", cardHtml(l)); }
+        else cbAdd("cb-m bot", "<b>" + esc(code) + "</b> isn't listed any more — it may be sold. Ask Yash for similar options:" + '<a class="btn wa" style="margin-top:8px;display:inline-flex" href="' + esc(waLink("Hi Yash, I'm asking about " + code + ". Is it still available, or do you have something similar?")) + '" target="_blank" rel="noopener">Ask Yash on WhatsApp</a>');
+      }
+      return;
+    }
+    if (/^\s*(hi+|hello+|hey+|namaste|namaskar|hii+|helo|good (morning|evening|afternoon)|help|thanks?|thank you|ok|okay)[\s!.?]*$/i.test(q)){
+      cbAdd("cb-m bot", /thank/i.test(q) ? "Happy to help! Ask any time, or WhatsApp Yash directly." : "Namaste! Tell me what you need — for example <b>\"plot under 40 lakh\"</b>, <b>\"2 BHK flat Nipania\"</b>, <b>\"shop on rent\"</b> or a Ref like <b>YB-G8NXY</b>.");
+      return;
+    }
     const c = parseQuery(/[\u0900-\u097f]/.test(q) ? normHindi(q) : q);
     const understood = critChips(c);
     if (!understood.length){
       cbAdd("cb-m bot", "Tell me what you're looking for: type (plot, flat, house, shop, office, land), budget, size or area. For example <b>\"plot under 40 lakh\"</b> or <b>\"bank auction flat Indore\"</b>.");
       return;
     }
-    const { rows, locHit } = search(c);
+    let { rows, locHit } = search(c), over = false;
+    if (!rows.length && c.max){ const r2 = search({ ...c, max: c.max * 1.4 }); if (r2.rows.length){ rows = r2.rows; locHit = r2.locHit; over = true; } }
     const chips = '<div class="cb-crit">' + understood.map(t => "<span>" + esc(t) + "</span>").join("") + "</div>";
     if (!rows.length){
       cbAdd("cb-m bot", "Nothing listed right now that matches." + chips + '<div style="margin-top:8px">New properties come in every day. Send me your requirement and I\'ll WhatsApp you as soon as one fits.</div><a class="btn wa" style="margin-top:8px;display:inline-flex" href="' + esc(reqLink(q)) + '" target="_blank" rel="noopener">Send requirement to Yash</a>');
       return;
     }
-    const note = !locHit ? '<div style="margin-top:6px">No listing in <b>' + esc(c.words.join(", ")) + '</b> right now, so here are the closest matches elsewhere.</div>' : "";
-    cbAdd("cb-m bot", "Found <b>" + rows.length + "</b> propert" + (rows.length === 1 ? "y" : "ies") + "." + chips + note);
+    const onlyPlace = !locHit && !c.types && !c.max && !c.min && !c.area && !c.bhk && !c.auction && c.deal !== "rent";
+    if (onlyPlace){
+      cbAdd("cb-m bot", "Nothing listed in <b>" + esc(c.place) + "</b> right now." + '<div style="margin-top:8px">Tell me the type and budget (e.g. "2 BHK flat under 50 lakh"), or send your requirement and Yash will WhatsApp you when one comes in.</div><a class="btn wa" style="margin-top:8px;display:inline-flex" href="' + esc(reqLink(q)) + '" target="_blank" rel="noopener">Send requirement to Yash</a>');
+      return;
+    }
+    if (!locHit) cbAdd("cb-m bot", "Nothing in <b>" + esc(c.place) + "</b> right now. Here are the closest " + Math.min(rows.length, 5) + " of " + rows.length + " matches elsewhere:" + chips);
+    else if (over) cbAdd("cb-m bot", "Nothing within " + money(c.max) + " right now. These " + Math.min(rows.length, 5) + " are a little above your budget:" + chips);
+    else cbAdd("cb-m bot", "Found <b>" + rows.length + "</b> propert" + (rows.length === 1 ? "y" : "ies") + "." + chips);
     const box = cbAdd("cb-res", rows.slice(0, 5).map(cardHtml).join(""));
     if (rows.length > 5){
       const b = document.createElement("button"); b.type = "button"; b.className = "cb-more"; b.textContent = "Show all " + rows.length + " on the page";
