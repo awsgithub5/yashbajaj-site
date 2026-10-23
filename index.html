@@ -88,6 +88,8 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
 .live small{font-family:var(--f-body);font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);font-size:13px}
 .pulse{display:flex;flex-wrap:wrap;gap:10px 28px;padding:14px 16px;margin-bottom:6px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--live);border-radius:10px;font-size:14px;color:var(--muted)}
 .pulse b{font-family:var(--f-mono);font-weight:500;font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:4px}
+.ref{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.04em}
+.badge.net{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 .listed{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .badge.new{background:var(--live);color:#fff}
 .listed.old{color:var(--marigold)}
@@ -160,7 +162,7 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
   </header>
 
   <div class="intro">
-    <div><b>Plots, land and offices</b>Handpicked properties across Indore, Dewas Bypass and Mhow Road.</div>
+    <div><b>Plots, flats, offices and land</b>From our own portfolio and our trusted broker network across Indore. Every enquiry comes straight to Yash.</div>
     <div><b>Bank auction properties</b>Below-market homes and plots sold by banks. Reserve price shown; we help with title checks and bidding.</div>
     <div><b>Tell us what you need</b>Not seeing the right one? Send your requirement and we'll find it.</div>
   </div>
@@ -280,6 +282,8 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
 ]}
 </script>
 <script>
+/* short public reference code, same formula in the CRM */
+function refCode(id){ let h = 2166136261; for (const ch of String(id)){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } const A = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; let s = ""; for (let i = 0; i < 5; i++){ s += A[h % 32]; h = Math.floor(h / 32); } return "YB-" + s; }
 /* voice input (Web Speech API) — makeVoice(input, micBtn, langBtn, {onFinal, onNote}) */
 function makeVoice(input, mic, langBtn, opts){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -325,6 +329,7 @@ function normHindi(s){
   try { const r = await fetch("listings.json?v=" + Date.now(), { cache: "no-store" }); if (r.ok) { const d = await r.json(); if (d && Array.isArray(d.listings)) data = d; } } catch (e) {}
   const today = new Date(); today.setHours(0,0,0,0);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const isRent = l => l.deal === "rent";
   const money = p => { if(!p) return "On request"; if(p>=1e7) return "₹"+(p/1e7).toFixed(2).replace(/\.?0+$/,"")+" Cr"; if(p>=1e5) return "₹"+(p/1e5).toFixed(1).replace(/\.0$/,"")+" L"; return "₹"+p.toLocaleString("en-IN"); };
   const group = l => ["plot","land"].includes(l.type) ? "plot" : ["flat","house","villa","row house"].includes(l.type) ? "home" : "commercial";
   const fmtDate = d => new Date(d+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"});
@@ -343,7 +348,7 @@ function normHindi(s){
   function waLink(text){ return "https://wa.me/"+WA+"?text="+encodeURIComponent(text); }
   function enquiry(l){
     const bits = [l.title, l.location, l.areaSqft ? l.areaSqft.toLocaleString("en-IN")+" sq ft" : "", l.price ? money(l.price) : ""].filter(Boolean).join(", ");
-    return "Hi Yash, I saw this on your listings page and I'm interested: " + bits + (l.kind==="auction" ? " (bank auction on "+fmtDate(l.auctionDate)+")" : "") + ". Please share details. Ref: " + l.id;
+    return "Hi Yash, I saw this on your listings page and I'm interested: " + bits + (isRent(l) ? " (rent per month)" : "") + (l.kind==="auction" ? " (bank auction on "+fmtDate(l.auctionDate)+")" : "") + ". Please share details. Ref: " + refCode(l.id);
   }
   function render(){
     const q = document.getElementById("q").value.trim().toLowerCase();
@@ -352,7 +357,7 @@ function normHindi(s){
       if (filter==="auction" && l.kind!=="auction") return false;
       if (["plot","home","commercial"].includes(filter) && group(l)!==filter) return false;
       if (max && (!l.price || l.price>max)) return false;
-      if (q && !(l.location+" "+l.title).toLowerCase().includes(q)) return false;
+      if (q && !(l.location+" "+l.title+" "+refCode(l.id)).toLowerCase().includes(q)) return false;
       if (chatIds && !chatIds.has(l.id)) return false;
       return true;
     }).sort((a,b) => (b.listed||"").localeCompare(a.listed||"") || (a.kind===b.kind ? 0 : a.kind==="own" ? -1 : 1) || (a.auctionDate||"").localeCompare(b.auctionDate||""));
@@ -361,16 +366,17 @@ function normHindi(s){
     const g = document.getElementById("grid");
     if (!rows.length){ g.innerHTML = '<p class="empty">No property matches these filters right now. Send your requirement below and we\'ll find one.</p>'; return; }
     g.innerHTML = rows.map(l => {
-      const rate = l.price && l.areaSqft && l.areaSqft < 100000 ? "₹"+Math.round(l.price/l.areaSqft).toLocaleString("en-IN") : "—";
+      const rate = l.price && l.areaSqft && l.areaSqft < 100000 && !isRent(l) ? "₹"+Math.round(l.price/l.areaSqft).toLocaleString("en-IN") : "—";
       return '<article class="card">'
         + '<div class="top"><span class="type">'+esc(l.type)+'</span>'
-        + (l.kind==="auction" ? '<span class="badge auc">Bank auction</span>' : '<span class="badge own">Yash Real Estate</span>') + '</div>'
+        + (l.kind==="auction" ? '<span class="badge auc">Bank auction</span>' : l.kind==="network" ? '<span class="badge net">Broker network</span>' : '<span class="badge own">Yash Real Estate</span>') + '</div>'
         + '<h2>'+esc(l.title)+'</h2><p class="loc">'+esc(l.location)+'</p>'
-        + '<div class="facts"><div><span>'+(l.kind==="auction"?"Reserve":"Price")+'</span><b>'+money(l.price)+'</b></div>'
+        + '<div class="facts"><div><span>'+(l.kind==="auction"?"Reserve":isRent(l)?"Rent / month":"Price")+'</span><b>'+money(l.price)+'</b></div>'
         + '<div><span>Area</span><b>'+(l.areaSqft ? l.areaSqft.toLocaleString("en-IN")+" ft²" : "—")+'</b></div>'
         + '<div><span>Rate / ft²</span><b>'+rate+'</b></div></div>'
         + (l.kind==="auction" ? '<div class="when">Auction '+fmtDate(l.auctionDate)+' · '+esc(l.lender)+(daysUntil(l.auctionDate)<=7 ? ' · <span class="soon">'+(daysUntil(l.auctionDate)===0?'today':'in '+daysUntil(l.auctionDate)+' day'+(daysUntil(l.auctionDate)===1?'':'s'))+'</span>' : '')+'</div>' : '')
         + listedLine(l)
+        + '<div class="ref">Ref '+refCode(l.id)+'</div>'
         + '<a class="btn wa" href="'+esc(waLink(enquiry(l)))+'" target="_blank" rel="noopener">Enquire on WhatsApp</a>'
         + '</article>';
     }).join("");
@@ -475,11 +481,12 @@ function normHindi(s){
       (t === "shop" && g === "commercial") || (t === "office" && g === "commercial"));
   };
   function search(c){
-    const hay = l => (l.title + " " + l.location).toLowerCase();
+    const fz = t => t.toLowerCase().replace(/[yh]/g, "").replace(/(.)\1+/g, "$1");
+    const hay = l => fz(l.title + " " + l.location);
     let pool = live.filter(l => typeOk(l, c.types));
     if (c.auction) pool = pool.filter(l => l.kind === "auction");
-    if (c.deal === "rent") pool = pool.filter(l => /rent|lease/i.test(l.title));
-    else pool = pool.filter(l => !/\b(on rent|for rent|lease)\b/i.test(l.title));
+    if (c.deal === "rent") pool = pool.filter(l => isRent(l) || /rent|lease/i.test(l.title));
+    else pool = pool.filter(l => !isRent(l) && !/\b(on rent|for rent|lease)\b/i.test(l.title));
     if (c.bhk) pool = pool.filter(l => !/bhk/i.test(l.title) || new RegExp(c.bhk + "\\s*bhk", "i").test(l.title));
     if (c.max) pool = pool.filter(l => !l.price || l.price <= c.max * 1.1);
     if (c.min) pool = pool.filter(l => !l.price || l.price >= c.min * 0.9);
@@ -489,7 +496,7 @@ function normHindi(s){
     if ((c.max || c.min) && pool.some(l => l.price)) pool = pool.filter(l => l.price);
     let locHit = true;
     if (c.words.length){
-      const byLoc = pool.filter(l => c.words.some(w => hay(l).includes(w)));
+      const byLoc = pool.filter(l => c.words.some(w => hay(l).includes(fz(w))));
       if (byLoc.length) pool = byLoc; else locHit = false;
     }
     const score = l => (l.price ? 2 : 0) + (l.areaSqft ? 1 : 0) + (c.max && l.price ? 1 - l.price / (c.max * 1.1) : 0) + (l.kind === "own" ? 0.5 : 0);
@@ -512,9 +519,9 @@ function normHindi(s){
   function cbAdd(cls, html){ const d = document.createElement("div"); d.className = cls; d.innerHTML = html; cbLog.append(d); cbLog.scrollTop = cbLog.scrollHeight; return d; }
   function cardHtml(l){
     return '<div class="cb-card"><span class="t">' + esc(l.title) + '</span><span class="l">' + esc(l.location) + '</span>'
-      + '<span class="f"><span>' + (l.kind==="auction" ? "Reserve " : "") + money(l.price) + '</span>' + (l.areaSqft ? '<span>' + l.areaSqft.toLocaleString("en-IN") + ' ft²</span>' : '') + '</span>'
+      + '<span class="f"><span>' + (l.kind==="auction" ? "Reserve " : "") + money(l.price) + (isRent(l) && l.price ? "/mo" : "") + '</span>' + (l.areaSqft ? '<span>' + l.areaSqft.toLocaleString("en-IN") + ' ft²</span>' : '') + '</span>'
       + (l.kind==="auction" ? '<span class="a">Bank auction · ' + fmtDate(l.auctionDate) + ' · ' + esc(l.lender) + '</span>' : '')
-      + '<a class="btn wa" href="' + esc(waLink(enquiry(l))) + '" target="_blank" rel="noopener">Enquire on WhatsApp</a></div>';
+      + '<span class="l">Ref ' + refCode(l.id) + '</span><a class="btn wa" href="' + esc(waLink(enquiry(l))) + '" target="_blank" rel="noopener">Enquire on WhatsApp</a></div>';
   }
   function reqLink(q){ return waLink("Hi Yash, I'm looking for: " + q + ". Please share suitable options. Ref: REQ-CHAT"); }
   function answer(q){
