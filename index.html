@@ -426,7 +426,7 @@ function normHindi(s){
     ["industrial", /\b(industrial|godown|warehouse|shed|factory)\b/],
     ["commercial", /\b(commercial|vyavsayik)\b/]
   ];
-  const STOP = new Set("i me my we need want wanted looking look for find show a an the in at near on of to and or with under below upto up till max maximum within less than above over more min minimum from between budget price rs inr lakh lakhs lac lacs l cr crore crores k sq ft sqft feet square yard yards gaj bigha acre area size sale buy purchase rent rental lease kiraye kiraya chahiye chaiye hai mein me ka ki ke se tak koi kuch please pls property properties plot plots flat flats house home bhk any good cheap best new indore road nagar colony available option options auction bank space spaces jagah near side wala wali vala show me give list all type types sell selling ready resale fresh".split(" "));
+  const STOP = new Set("i me my we need want wanted looking look for find show a an the in at near on of to and or with under below upto up till max maximum within less than above over more min minimum from between budget price rs inr lakh lakhs lac lacs l cr crore crores k sq ft sqft feet square yard yards gaj bigha acre area size sale buy purchase rent rental lease kiraye kiraya chahiye chaiye hai mein me ka ki ke se tak koi kuch please pls property properties plot plots flat flats house home bhk any good cheap best new indore road nagar colony available option options auction bank space spaces jagah near side wala wali vala show me give list all type types sell selling ready resale fresh how can could would will you your yours what which who whom whose why when where there this that these those is are was were am be been do does did have has had help helping tell about know get got let lets hello hii thanks thank okay hai kya kaise kaisa kaun kab kahan aap aapka aapki tum batao bataiye madad sakte sakta sakti karo kare karna chahta chahti mujhe hume hum humko service services contact number call phone whatsapp details detail info information".split(" "));
   function amount(numStr, unit){
     let n = parseFloat(numStr.replace(/,/g, "")); if (!isFinite(n)) return null;
     unit = (unit || "").toLowerCase();
@@ -551,7 +551,28 @@ function normHindi(s){
       cbAdd("cb-m bot", /thank/i.test(q) ? "Happy to help! Ask any time, or WhatsApp Yash directly." : "Namaste! Tell me what you need — for example <b>\"plot under 40 lakh\"</b>, <b>\"2 BHK flat Nipania\"</b>, <b>\"shop on rent\"</b> or a Ref like <b>YB-G8NXY</b>.");
       return;
     }
+    const ql = q.toLowerCase();
+    const HELP = "I search Yash Real Estate's live properties for you — plots, flats, houses, shops, offices, land and bank-auction properties across Indore. Just tell me what you need, for example:<br>• <b>plot under 40 lakh</b><br>• <b>2 BHK flat Nipania</b><br>• <b>shop on rent</b><br>• <b>bank auction house</b><br>• a Ref like <b>YB-G8NXY</b><br>You can also tap 🎤 and speak in English or हिंदी. To talk to Yash directly: WhatsApp <b>+91 88188 66206</b>.";
+    const askYash = (t) => '<a class="btn wa" style="margin-top:8px;display:inline-flex" href="' + esc(waLink(t)) + '" target="_blank" rel="noopener">WhatsApp Yash</a>';
+    if (/\b(contact|phone|number|call|address|office location|where are you|kahan ho|milna|meet)\b/.test(ql) && !/\b(plot|flat|house|shop|bhk|land|office space)\b/.test(ql)){
+      cbAdd("cb-m bot", "You can reach Yash Bajaj on WhatsApp or call <b>+91 88188 66206</b>." + askYash("Hi Yash, I'd like to talk about a property.")); return;
+    }
+    if (/\b(loan|emi|finance|bank loan)\b/.test(ql) && !/\bauction\b/.test(ql)){
+      cbAdd("cb-m bot", "Yash can guide you on home loans for any property you like. Tell me the property you're looking for, or ask him directly." + askYash("Hi Yash, I need help with a home loan for a property.")); return;
+    }
+    if (/\b(sell|selling|bechna|bechni)\b/.test(ql) && /\b(my|mera|meri|apna|apni)\b/.test(ql)){
+      cbAdd("cb-m bot", "Want to sell or rent out your property? Send Yash the details (type, location, size, price) and he'll find buyers." + askYash("Hi Yash, I want to sell/rent out my property. Details: ")); return;
+    }
+    if (/\b(help|how can|what can|who are you|what do you do|kya kar sakte|madad|kaise|guide)\b/.test(ql) || /^\s*(\?|what|how|who)\b/.test(ql)){
+      const c0 = parseQuery(/[\u0900-\u097f]/.test(q) ? normHindi(q) : q);
+      if (!c0.types && !c0.max && !c0.min && !c0.area && !c0.bhk && !c0.auction && c0.deal !== "rent"){ cbAdd("cb-m bot", HELP); return; }
+    }
     const c = parseQuery(/[\u0900-\u097f]/.test(q) ? normHindi(q) : q);
+    // with no type/budget/size, only treat words as places if a listing really has that place name
+    if (!c.types && !c.max && !c.min && !c.area && !c.bhk && !c.auction && c.deal !== "rent" && c.words.length){
+      const known = c.words.filter(w => w.length >= 4 && live.some(l => new RegExp("\\b" + w.replace(/[^a-z0-9]/g, ""), "i").test(l.location + " " + l.title)));
+      if (!known.length && !c.words.some(w => w.length >= 5)){ cbAdd("cb-m bot", HELP); return; }
+    }
     const understood = critChips(c);
     if (!understood.length){
       cbAdd("cb-m bot", "Tell me what you're looking for: type (plot, flat, house, shop, office, land), budget, size or area. For example <b>\"plot under 40 lakh\"</b> or <b>\"bank auction flat Indore\"</b>.");
