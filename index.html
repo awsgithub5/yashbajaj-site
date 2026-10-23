@@ -162,7 +162,7 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
   </header>
 
   <div class="intro">
-    <div><b>Plots, flats, offices and land</b>From our own portfolio and our trusted broker network across Indore. Every enquiry comes straight to Yash.</div>
+    <div><b>Plots, flats, offices and land</b>Properties across Indore, Dewas Bypass, Super Corridor and Mhow Road. Every enquiry comes straight to Yash.</div>
     <div><b>Bank auction properties</b>Below-market homes and plots sold by banks. Reserve price shown; we help with title checks and bidding.</div>
     <div><b>Tell us what you need</b>Not seeing the right one? Send your requirement and we'll find it.</div>
   </div>
@@ -206,7 +206,7 @@ footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:13px;c
   </section>
 
   <footer>
-    <span>Live inventory, refreshed every evening around 8 PM IST from our broker network and banks' sale notices. Last updated <span id="updated"></span>. Prices and availability change; confirm before visiting.</span>
+    <span>Live inventory, refreshed every evening around 8 PM IST. Last updated <span id="updated"></span>. Prices and availability change; confirm before visiting.</span>
     <span>Bank auction details are from banks' public sale notices. Final price is decided at the auction.</span>
   </footer>
 </div>
@@ -369,7 +369,7 @@ function normHindi(s){
       const rate = l.price && l.areaSqft && l.areaSqft < 100000 && !isRent(l) ? "₹"+Math.round(l.price/l.areaSqft).toLocaleString("en-IN") : "—";
       return '<article class="card">'
         + '<div class="top"><span class="type">'+esc(l.type)+'</span>'
-        + (l.kind==="auction" ? '<span class="badge auc">Bank auction</span>' : l.kind==="network" ? '<span class="badge net">Broker network</span>' : '<span class="badge own">Yash Real Estate</span>') + '</div>'
+        + (l.kind==="auction" ? '<span class="badge auc">Bank auction</span>' : l.kind==="network" ? '' : '<span class="badge own">Yash Real Estate</span>') + '</div>'
         + '<h2>'+esc(l.title)+'</h2><p class="loc">'+esc(l.location)+'</p>'
         + '<div class="facts"><div><span>'+(l.kind==="auction"?"Reserve":isRent(l)?"Rent / month":"Price")+'</span><b>'+money(l.price)+'</b></div>'
         + '<div><span>Area</span><b>'+(l.areaSqft ? l.areaSqft.toLocaleString("en-IN")+" ft²" : "—")+'</b></div>'
